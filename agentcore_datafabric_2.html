@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Amazon Bedrock AgentCore</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Amazon Ember','Helvetica Neue',Arial,sans-serif;font-size:14px;color:#0f1111;background:#fff;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Top bar ── */
+.topbar{background:#232f3e;height:38px;display:flex;align-items:center;padding:0 12px;gap:16px;flex-shrink:0}
+.tb-logo{color:#ff9900;font-size:20px;font-weight:900;letter-spacing:-1px;font-family:Georgia,serif}
+.tb-icon{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.tb-icon svg{width:16px;height:16px;fill:#d5dbdb}
+.tb-search{flex:1;max-width:560px;background:rgba(255,255,255,0.9);border:none;border-radius:3px;height:26px;display:flex;align-items:center;padding:0 10px;gap:8px;cursor:text}
+.tb-search input{border:none;outline:none;font-size:13px;background:transparent;flex:1;color:#0f1111}
+.tb-search svg{width:14px;height:14px;fill:#687078;flex-shrink:0}
+.tb-shortcut{font-size:11px;color:#687078;border:1px solid #aab7b8;border-radius:3px;padding:1px 5px;white-space:nowrap}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.tb-region{color:#d5dbdb;font-size:12px;cursor:pointer;white-space:nowrap}
+.tb-account{color:#d5dbdb;font-size:11px;text-align:right;line-height:1.4;white-space:nowrap}
+.tb-account span{display:block;color:#fff;font-size:12px}
+.tb-bell{position:relative}
+.tb-badge{position:absolute;top:-4px;right:-4px;background:#d13212;color:#fff;font-size:9px;font-weight:700;width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+
+/* ── Breadcrumb ── */
+.breadcrumb{background:#fff;border-bottom:1px solid #e7e7e7;padding:8px 20px;display:flex;align-items:center;gap:6px;font-size:13px;flex-shrink:0}
+.bc-link{color:#0073bb;cursor:pointer;text-decoration:none}
+.bc-link:hover{text-decoration:underline}
+.bc-sep{color:#687078;font-size:11px}
+.bc-current{color:#0f1111;font-weight:500}
+
+/* ── Layout ── */
+.body-wrap{display:flex;flex:1;min-height:0}
+
+/* ── Sidebar ── */
+.sidebar{width:240px;background:#fff;border-right:1px solid #e7e7e7;padding:0;flex-shrink:0;overflow-y:auto}
+.sb-header{padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e7e7}
+.sb-title{font-size:14px;font-weight:700;color:#0f1111;line-height:1.3}
+.sb-collapse{background:none;border:none;cursor:pointer;color:#687078;font-size:16px;padding:2px}
+.sb-section{font-size:11px;font-weight:700;color:#687078;padding:12px 16px 4px;letter-spacing:0.2px;text-transform:uppercase}
+.sb-item{display:block;padding:5px 16px;font-size:13px;color:#0f1111;cursor:pointer;text-decoration:none;line-height:1.5;white-space:nowrap}
+.sb-item:hover{background:#f2f8fd;color:#0073bb}
+.sb-item.active{color:#0073bb;font-weight:600}
+.sb-item.sub{padding-left:28px}
+.sb-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;margin-left:5px;vertical-align:middle}
+.sb-badge.preview{color:#0073bb;border:1px solid #0073bb;background:transparent}
+.sb-badge.new-b{background:#037f0c;color:#fff}
+.sb-item.active .sb-badge.preview{color:#0073bb}
+
+/* ── Main content ── */
+.main{flex:1;overflow-y:auto;background:#f2f3f3}
+.main-inner{padding:24px 32px;max-width:1200px}
+
+/* ── Overview page ── */
+.page-title{font-size:24px;font-weight:400;color:#0f1111;margin-bottom:20px}
+.info-banner{background:#0073bb;color:#fff;border-radius:4px;padding:12px 16px;margin-bottom:24px;display:flex;align-items:flex-start;gap:10px;position:relative}
+.info-banner-close{position:absolute;top:10px;right:12px;background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1;opacity:0.8}
+.info-banner-close:hover{opacity:1}
+.info-banner svg{width:18px;height:18px;fill:#fff;flex-shrink:0;margin-top:1px}
+.info-banner-text{font-size:13px;line-height:1.6}
+.info-banner-text strong{font-weight:700}
+.info-banner-text a{color:#fff;text-decoration:underline;cursor:pointer}
+
+.overview-grid{display:grid;grid-template-columns:1fr 1.6fr;gap:16px;margin-bottom:24px}
+.about-card{background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:28px}
+.about-card h2{font-size:20px;font-weight:700;color:#0f1111;margin-bottom:14px}
+.about-card p{font-size:14px;color:#0f1111;line-height:1.7;margin-bottom:12px}
+.about-card p:last-child{margin-bottom:0}
+.arch-card{background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px;display:flex;align-items:center;justify-content:center}
+.arch-img{width:100%;max-width:680px}
+
+.section-title{font-size:20px;font-weight:700;color:#0f1111;margin-bottom:4px}
+.section-sub{font-size:14px;color:#687078;margin-bottom:18px}
+
+.build-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.build-card{background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px}
+.build-card h3{font-size:15px;font-weight:700;color:#0f1111;margin-bottom:8px}
+.build-card p{font-size:13px;color:#687078;line-height:1.6;margin-bottom:14px}
+.build-card .bc-link-btn{color:#0073bb;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none}
+.build-card .bc-link-btn:hover{text-decoration:underline}
+
+/* ── Enterprise Fabric page ── */
+.df-page{display:none}
+.how-it-works{background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:24px;margin-bottom:16px}
+.hiw-title{font-size:16px;font-weight:700;color:#0f1111;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.hiw-title::before{content:'▼';font-size:11px;color:#687078}
+.hiw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid #e7e7e7;border-left:1px solid #e7e7e7;border-radius:0}
+.hiw-card{padding:24px 20px;border-right:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7}
+.hiw-card:last-child{border-right:none}
+.hiw-illo{width:100%;height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.hiw-card h3{font-size:14px;font-weight:700;color:#0f1111;margin-bottom:10px}
+.hiw-card p{font-size:13px;color:#0f1111;line-height:1.65;margin-bottom:16px}
+.hiw-btn{display:inline-block;border:1.5px solid #0073bb;color:#0073bb;border-radius:20px;padding:6px 18px;font-size:13px;font-weight:500;cursor:pointer;background:#fff;white-space:nowrap}
+.hiw-btn:hover{background:#f2f8fd}
+.hiw-btn svg{width:12px;height:12px;vertical-align:middle;margin-left:4px}
+
+.df-detail{background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:24px;margin-bottom:16px}
+.df-detail h3{font-size:16px;font-weight:700;color:#0f1111;margin-bottom:8px}
+.df-detail p{font-size:13px;color:#687078;line-height:1.65;margin-bottom:16px}
+.df-fabric-diagram{width:100%;background:#f8f9fa;border:1px solid #e7e7e7;border-radius:6px;padding:20px;margin-bottom:16px}
+
+/* Architecture SVG */
+.arch-svg{width:100%}
+
+/* Fabric flow diagram */
+.fabric-flow{display:flex;align-items:center;gap:0;overflow-x:auto;padding:8px 0}
+.ff-node{background:#fff;border:1.5px solid #aab7b8;border-radius:6px;padding:10px 14px;text-align:center;flex-shrink:0;min-width:110px}
+.ff-node.highlight{border-color:#0073bb;background:#f2f8fd}
+.ff-node.td{border-color:#ff6b00;background:#fff5ee}
+.ff-node-title{font-size:12px;font-weight:700;color:#0f1111;margin-bottom:3px}
+.ff-node-sub{font-size:11px;color:#687078;line-height:1.4}
+.ff-arrow{font-size:18px;color:#aab7b8;padding:0 6px;flex-shrink:0}
+
+/* Step cards */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.step-card{border:1px solid #e7e7e7;border-radius:6px;padding:16px;background:#fff}
+.step-num{width:26px;height:26px;border-radius:50%;background:#0073bb;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.step-card h4{font-size:13px;font-weight:700;color:#0f1111;margin-bottom:6px}
+.step-card p{font-size:12px;color:#687078;line-height:1.55}
+.step-card.td-step .step-num{background:#ff6b00}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="tb-logo">aws</div>
+  <div class="tb-icon"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg></div>
+  <div class="tb-search">
+    <svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" stroke="#687078" stroke-width="1.5" fill="none"/><line x1="11" y1="11" x2="15" y2="15" stroke="#687078" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <input placeholder="Search" readonly/>
+    <span class="tb-shortcut">[Option+S]</span>
+  </div>
+  <div class="tb-right">
+    <div class="tb-icon tb-bell">
+      <svg viewBox="0 0 16 16"><path d="M8 1a5 5 0 0 1 5 5v3l1 2H2l1-2V6a5 5 0 0 1 5-5z" stroke="#d5dbdb" stroke-width="1.2" fill="none"/><circle cx="8" cy="14" r="1.5" fill="#d5dbdb"/></svg>
+      <span class="tb-badge">9</span>
+    </div>
+    <div class="tb-icon"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="#d5dbdb" stroke-width="1.2" fill="none"/><text x="8" y="12" text-anchor="middle" fill="#d5dbdb" font-size="9" font-weight="700">?</text></svg></div>
+    <div class="tb-icon"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="#d5dbdb" stroke-width="1.2" fill="none"/><path d="M6 6h4M6 8h4M6 10h2" stroke="#d5dbdb" stroke-width="1" stroke-linecap="round"/></svg></div>
+    <span class="tb-region" style="color:#d5dbdb;font-size:12px">United States (Oregon) ▼</span>
+    <div class="tb-account"><span>icaws-uda-querygrid (2730-7571-7916)</span>Developer/debjani.panda@teradata.com</div>
+  </div>
+</div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb" id="bc">
+  <span class="bc-link" onclick="showPage('overview')">Amazon Bedrock AgentCore</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-current" id="bc-current">Overview</span>
+</div>
+
+<div class="body-wrap">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-header">
+      <div class="sb-title">Amazon Bedrock<br>AgentCore</div>
+      <button class="sb-collapse">‹</button>
+    </div>
+    <div class="sb-section">Discover</div>
+    <span class="sb-item sub active" id="nav-overview" onclick="showPage('overview')">Overview</span>
+    <span class="sb-item sub" id="nav-registry">Registry <span class="sb-badge preview">Preview</span></span>
+
+    <div class="sb-section">Build</div>
+    <span class="sb-item sub" id="nav-harness">Harness <span class="sb-badge preview">Preview</span></span>
+    <span class="sb-item sub" id="nav-runtime">Runtime</span>
+    <span class="sb-item sub" id="nav-gateways" onclick="showPage('gateways')">Gateways</span>
+    <span class="sb-item sub" id="nav-memory">Memory</span>
+    <span class="sb-item sub" id="nav-policy">Policy <span class="sb-badge new-b">New</span></span>
+    <span class="sb-item sub" id="nav-identity">Identity</span>
+    <span class="sb-item sub" id="nav-datafabric" onclick="showPage('datafabric')" style="color:#0073bb">Enterprise Fabric <span class="sb-badge preview">Preview</span></span>
+
+    <div class="sb-section">Built-in tools</div>
+    <span class="sb-item sub">Browser</span>
+    <span class="sb-item sub">Code Interpreter</span>
+
+    <div class="sb-section">Test</div>
+    <span class="sb-item sub">Harness playground</span>
+    <span class="sb-item sub">Runtime playground</span>
+
+    <div class="sb-section">Assess</div>
+    <span class="sb-item sub">Observability ↗</span>
+    <span class="sb-item sub">Evaluations</span>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="main-inner">
+
+      <!-- ══ OVERVIEW PAGE ══ -->
+      <div id="page-overview">
+        <div class="page-title">Overview</div>
+
+        <div class="info-banner" id="info-banner">
+          <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1.5" fill="none"/><text x="10" y="14" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">i</text></svg>
+          <div class="info-banner-text">
+            <strong>Now centrally discover, organize and curate your AI resources using AWS Agent Registry</strong><br>
+            For more information, access <a>AWS Agent Registry</a> in Console or refer to <a>Documentation ↗</a>.
+          </div>
+          <button class="info-banner-close" onclick="document.getElementById('info-banner').style.display='none'">×</button>
+        </div>
+
+        <div class="overview-grid">
+          <div class="about-card">
+            <h2>About Amazon Bedrock AgentCore</h2>
+            <p>Amazon Bedrock AgentCore is a modular set of capabilities to build, deploy and operate production-grade agents securely and scalably using any framework and model.</p>
+            <p>AgentCore capabilities are optimized to work together or individually, giving you the flexibility to integrate with any open-source frameworks.</p>
+          </div>
+          <div class="arch-card">
+            <svg class="arch-svg" viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg">
+              <!-- outer agent box -->
+              <rect x="10" y="10" width="620" height="180" rx="8" fill="none" stroke="#c8b6e2" stroke-width="1.5" stroke-dasharray="6 3"/>
+              <text x="310" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="#6b4f9e">Agent</text>
+              <text x="310" y="40" text-anchor="middle" font-size="9" fill="#9e8cbf">Any framework, any model, all popular protocols</text>
+              <!-- build/deploy/assess labels -->
+              <rect x="240" y="48" width="54" height="16" rx="3" fill="#e8eaf6"/>
+              <text x="267" y="59" text-anchor="middle" font-size="9" font-weight="700" fill="#3949ab">Build</text>
+              <rect x="530" y="48" width="52" height="16" rx="3" fill="#e8eaf6"/>
+              <text x="556" y="59" text-anchor="middle" font-size="9" font-weight="700" fill="#3949ab">Deploy</text>
+              <rect x="594" y="48" width="48" height="16" rx="3" fill="#e8eaf6"/>
+              <text x="618" y="59" text-anchor="middle" font-size="9" font-weight="700" fill="#3949ab">Assess</text>
+              <!-- agentcore row -->
+              <rect x="20" y="68" width="72" height="22" rx="3" fill="#e8eaf6"/>
+              <text x="56" y="82" text-anchor="middle" font-size="9" font-weight="700" fill="#3949ab">AgentCore</text>
+              <rect x="102" y="68" width="150" height="22" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="177" y="79" text-anchor="middle" font-size="8" font-weight="600" fill="#0f1111">Harness</text>
+              <text x="177" y="88" text-anchor="middle" font-size="7" fill="#687078">Models, tools, skills, memory</text>
+              <rect x="262" y="68" width="160" height="22" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="342" y="79" text-anchor="middle" font-size="8" font-weight="600" fill="#0f1111">CLI</text>
+              <text x="342" y="88" text-anchor="middle" font-size="7" fill="#687078">Strands, models, tools, skills, memory</text>
+              <rect x="432" y="68" width="160" height="22" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="512" y="79" text-anchor="middle" font-size="8" font-weight="600" fill="#0f1111">SDK</text>
+              <text x="512" y="88" text-anchor="middle" font-size="7" fill="#687078">Strands, models, tools, skills, memory</text>
+              <!-- capability tiles -->
+              <rect x="20" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="55" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Built-in tools</text>
+              <text x="55" y="124" text-anchor="middle" font-size="7" fill="#687078">Browser, Code</text>
+              <text x="55" y="133" text-anchor="middle" font-size="7" fill="#687078">Interpreter...</text>
+              <rect x="98" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="133" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Gateway</text>
+              <text x="133" y="124" text-anchor="middle" font-size="7" fill="#687078">APIs, Lambda,</text>
+              <text x="133" y="133" text-anchor="middle" font-size="7" fill="#687078">config bundles</text>
+              <rect x="176" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="211" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Identity</text>
+              <text x="211" y="124" text-anchor="middle" font-size="7" fill="#687078">Inbound and</text>
+              <text x="211" y="133" text-anchor="middle" font-size="7" fill="#687078">outbound auth</text>
+              <rect x="254" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="289" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Memory</text>
+              <text x="289" y="124" text-anchor="middle" font-size="7" fill="#687078">Short &amp; long</text>
+              <text x="289" y="133" text-anchor="middle" font-size="7" fill="#687078">term memory</text>
+              <rect x="332" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="367" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Policy</text>
+              <text x="367" y="124" text-anchor="middle" font-size="7" fill="#687078">Authorization</text>
+              <text x="367" y="133" text-anchor="middle" font-size="7" fill="#687078">control</text>
+              <rect x="410" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="445" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Payments</text>
+              <text x="445" y="124" text-anchor="middle" font-size="7" fill="#687078">Automate micro-</text>
+              <text x="445" y="133" text-anchor="middle" font-size="7" fill="#687078">transactions</text>
+              <rect x="488" y="100" width="70" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="523" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Registry</text>
+              <text x="523" y="124" text-anchor="middle" font-size="7" fill="#687078">Agents, MCP</text>
+              <text x="523" y="133" text-anchor="middle" font-size="7" fill="#687078">servers, Skills</text>
+              <rect x="566" y="100" width="64" height="44" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="598" y="114" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Runtime</text>
+              <text x="598" y="124" text-anchor="middle" font-size="7" fill="#687078">Agents,</text>
+              <text x="598" y="133" text-anchor="middle" font-size="7" fill="#687078">tools</text>
+              <!-- bottom row -->
+              <rect x="20" y="152" width="272" height="28" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="156" y="164" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Observability</text>
+              <text x="156" y="173" text-anchor="middle" font-size="7" fill="#687078">Monitor and debug</text>
+              <rect x="300" y="152" width="330" height="28" rx="3" fill="#fff" stroke="#c5cae9" stroke-width="1"/>
+              <text x="465" y="164" text-anchor="middle" font-size="8" font-weight="700" fill="#0f1111">Evaluations</text>
+              <text x="465" y="173" text-anchor="middle" font-size="7" fill="#687078">Batch evaluations, online evaluation configurations, custom evaluators</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="section-title">Build and deploy</div>
+        <div class="section-sub" style="margin-bottom:18px">Start building agents with AgentCore capabilities.</div>
+        <div class="build-grid">
+          <div class="build-card">
+            <h3>Create a harness</h3>
+            <p>Quickly create a harness by defining your model, system prompt, and tools — no infrastructure setup required. Connect to built-in AgentCore capabilities like Browser, Memory, and Gateway.</p>
+            <a class="bc-link-btn">Quick create harness ▼</a>
+          </div>
+          <div class="build-card">
+            <h3>Connect enterprise data</h3>
+            <p>Use Enterprise Fabric to connect Bedrock agents to on-premises and hybrid enterprise data via Teradata Teradata Fabric — without moving or replicating data. Set up in minutes.</p>
+            <a class="bc-link-btn" onclick="showPage('datafabric')">Set up Enterprise Fabric →</a>
+          </div>
+          <div class="build-card">
+            <h3>Assess performance</h3>
+            <p>Monitor sessions, traces, and spans to get real-time insights on agent performance, tool usage, and model behavior. View step-by-step execution traces.</p>
+            <a class="bc-link-btn">View observability ↗</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ DATA FABRIC PAGE ══ -->
+      <div id="page-datafabric" class="df-page">
+        <div class="page-title">Enterprise Fabric</div>
+        <div style="font-size:14px;color:#687078;margin-bottom:20px">Use Amazon Bedrock AgentCore Enterprise Fabric to connect agents to your entire enterprise data ecosystem — on-premises, hybrid, and multi-cloud — without moving or replicating data.</div>
+
+        <!-- How it works -->
+        <div class="how-it-works">
+          <div class="hiw-title">How it works</div>
+          <div class="hiw-grid">
+
+            <!-- Card 1 -->
+            <div class="hiw-card">
+              <div class="hiw-illo">
+                <svg width="110" height="110" viewBox="0 0 110 110">
+                  <circle cx="55" cy="55" r="50" fill="#e8f4fd" opacity="0.6"/>
+                  <!-- server stack -->
+                  <rect x="28" y="38" width="54" height="12" rx="3" fill="#aad4ee"/>
+                  <rect x="28" y="53" width="54" height="12" rx="3" fill="#aad4ee"/>
+                  <rect x="28" y="68" width="54" height="12" rx="3" fill="#0073bb" opacity="0.7"/>
+                  <circle cx="72" cy="44" r="3" fill="#1e8900"/>
+                  <circle cx="72" cy="59" r="3" fill="#1e8900"/>
+                  <circle cx="72" cy="74" r="3" fill="#ff9900"/>
+                  <!-- connector lines going right -->
+                  <line x1="82" y1="44" x2="96" y2="44" stroke="#0073bb" stroke-width="1.5" stroke-dasharray="3 2"/>
+                  <line x1="82" y1="59" x2="96" y2="59" stroke="#0073bb" stroke-width="1.5" stroke-dasharray="3 2"/>
+                  <!-- TD badge -->
+                  <rect x="20" y="26" width="22" height="10" rx="2" fill="#ff6b00"/>
+                  <text x="31" y="34" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">TD</text>
+                </svg>
+              </div>
+              <h3>Connect your data ecosystem</h3>
+              <p>Enterprise Fabric automatically deploys the Teradata Teradata Fabric engine into your AWS account and registers your on-premises databases, cloud warehouses, and hybrid data sources as connectors — no data movement required.</p>
+              <button class="hiw-btn" onclick="showPage('datafabric-setup')">Create Enterprise Fabric ▼</button>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="hiw-card">
+              <div class="hiw-illo">
+                <svg width="110" height="110" viewBox="0 0 110 110">
+                  <circle cx="55" cy="75" r="30" fill="#fff8e6" opacity="0.8"/>
+                  <!-- KB synthesis icon -->
+                  <rect x="30" y="30" width="50" height="40" rx="4" fill="#e8f4fd" stroke="#0073bb" stroke-width="1.2"/>
+                  <line x1="38" y1="42" x2="72" y2="42" stroke="#0073bb" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                  <line x1="38" y1="50" x2="65" y2="50" stroke="#0073bb" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                  <line x1="38" y1="58" x2="58" y2="58" stroke="#0073bb" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                  <!-- spark/synthesis indicator -->
+                  <circle cx="78" cy="32" r="10" fill="#fff3e0" stroke="#ff9900" stroke-width="1.5"/>
+                  <text x="78" y="37" text-anchor="middle" font-size="12" fill="#ff9900">⚡</text>
+                </svg>
+              </div>
+              <h3>Knowledge base synthesized automatically</h3>
+              <p>Once connectors are registered, Enterprise Fabric automatically ingests schema metadata from all connected engines and synthesizes a Bedrock Knowledge Base — giving agents accurate, governed context for natural language to SQL generation.</p>
+              <button class="hiw-btn">View Knowledge Base sync</button>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="hiw-card">
+              <div class="hiw-illo">
+                <svg width="110" height="110" viewBox="0 0 110 110">
+                  <circle cx="55" cy="55" r="48" fill="#e8f5e9" opacity="0.5"/>
+                  <!-- agent -->
+                  <circle cx="55" cy="38" r="14" fill="#e8f4fd" stroke="#0073bb" stroke-width="1.5"/>
+                  <circle cx="50" cy="35" r="2.5" fill="#0073bb"/>
+                  <circle cx="60" cy="35" r="2.5" fill="#0073bb"/>
+                  <path d="M49 42 Q55 46 61 42" stroke="#0073bb" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                  <!-- query lines going down -->
+                  <line x1="55" y1="52" x2="55" y2="62" stroke="#1e8900" stroke-width="1.5" marker-end="url(#arr)"/>
+                  <!-- data sources row -->
+                  <rect x="16" y="64" width="22" height="16" rx="3" fill="#fff" stroke="#aab7b8" stroke-width="1"/>
+                  <text x="27" y="75" text-anchor="middle" font-size="7" font-weight="600" fill="#0f1111">On-prem</text>
+                  <rect x="44" y="64" width="22" height="16" rx="3" fill="#fff" stroke="#ff6b00" stroke-width="1.2"/>
+                  <text x="55" y="75" text-anchor="middle" font-size="7" font-weight="600" fill="#ff6b00">Cloud</text>
+                  <rect x="72" y="64" width="22" height="16" rx="3" fill="#fff" stroke="#aab7b8" stroke-width="1"/>
+                  <text x="83" y="75" text-anchor="middle" font-size="7" font-weight="600" fill="#0f1111">Hybrid</text>
+                  <!-- result line -->
+                  <line x1="55" y1="80" x2="55" y2="90" stroke="#1e8900" stroke-width="1.5" stroke-dasharray="3 2"/>
+                  <rect x="36" y="90" width="38" height="14" rx="3" fill="#e8f5e9" stroke="#1e8900" stroke-width="1"/>
+                  <text x="55" y="100" text-anchor="middle" font-size="7" font-weight="700" fill="#1e8900">Result set</text>
+                  <defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#1e8900" stroke-width="1.5"/></marker></defs>
+                </svg>
+              </div>
+              <h3>Agents query any data, anywhere</h3>
+              <p>Bedrock agents query on-premises, cloud, and hybrid data in a single federated call via the Enterprise Fabric gateway — with intelligent pushdown, row-level governance, and full audit logging. Data never leaves its security boundary.</p>
+              <button class="hiw-btn">View observability ↗</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- What Enterprise Fabric sets up — headers only -->
+        <div class="df-detail">
+          <h3>What Enterprise Fabric sets up for you</h3>
+          <div class="steps-grid" style="margin-top:16px">
+            <div class="step-card td-step">
+              <div class="step-num">1</div>
+              <h4>Teradata Fabric Engine deployed</h4>
+            </div>
+            <div class="step-card td-step">
+              <div class="step-num">2</div>
+              <h4>Connectors registered</h4>
+            </div>
+            <div class="step-card td-step">
+              <div class="step-num" style="background:#0073bb">3</div>
+              <h4>Knowledge Base synthesized</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enterprise Fabrics table -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;overflow:hidden;margin-bottom:16px">
+          <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e7e7">
+            <div>
+              <span style="font-size:16px;font-weight:700;color:#0f1111">Enterprise Fabrics</span>
+              <span id="fabric-count" style="font-size:14px;color:#687078;margin-left:6px">(0)</span>
+              <span style="display:inline-block;background:#0073bb;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;margin-left:8px;font-weight:700">Info</span>
+              <div style="font-size:12px;color:#687078;margin-top:3px">Each Enterprise Fabric connects a full set of enterprise data engines to your Bedrock agents via a single governed gateway.</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Delete</button>
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Edit</button>
+              <button style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:5px 18px;border-radius:3px;font-size:13px;cursor:pointer;font-weight:700" onclick="showPage('create-fabric')" onclick="showPage('create-fabric')" onclick="showPage('create-fabric')" onclick="showPage('create-fabric')">Create Enterprise Fabric &#9660;</button>
+            </div>
+          </div>
+          <div style="padding:10px 20px;border-bottom:1px solid #e7e7e7;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:8px;border:1px solid #aab7b8;border-radius:3px;padding:5px 10px;width:320px;background:#fff">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#687078" stroke-width="1.5"/><line x1="11" y1="11" x2="15" y2="15" stroke="#687078" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input style="border:none;outline:none;font-size:13px;color:#687078;background:transparent;width:100%" placeholder="Find Enterprise Fabrics"/>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#687078">
+              <button style="background:none;border:none;cursor:pointer;color:#687078;font-size:16px;padding:2px 6px">&#8249;</button>
+              <span>1</span>
+              <button style="background:none;border:none;cursor:pointer;color:#687078;font-size:16px;padding:2px 6px">&#8250;</button>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="border-bottom:1px solid #e7e7e7">
+                <th style="width:36px;padding:10px 12px"></th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Name &#9661;</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Status &#9661;</th>
+                <th style="text-align:left;padding:10px 12px;font-weight:700;color:#0f1111;max-width:120px;white-space:normal;line-height:1.3">Connected<br>data sources &#9661;</th>
+                <th style="text-align:left;padding:10px 12px;font-weight:700;color:#0f1111;max-width:120px;white-space:normal;line-height:1.3">Connected<br>knowledge base &#9661;</th>
+                <th style="text-align:left;padding:10px 12px;font-weight:700;color:#0f1111;max-width:90px;white-space:normal;line-height:1.3">KB<br>status &#9661;</th>
+                <th style="text-align:left;padding:10px 12px;font-weight:700;color:#0f1111;max-width:120px;white-space:normal;line-height:1.3">Created at<br>(UTC-05:00) &#9661;</th>
+                <th style="text-align:left;padding:10px 12px;font-weight:700;color:#0f1111;max-width:120px;white-space:normal;line-height:1.3">Last updated<br>(UTC-05:00) &#9661;</th>
+              </tr>
+            </thead>
+            <tbody id="fabric-tbody">
+              <tr>
+                <td colspan="8" style="padding:48px 16px;text-align:center">
+                  <div style="font-size:14px;font-weight:600;color:#0f1111;margin-bottom:6px">No Enterprise Fabrics</div>
+                  <div style="font-size:13px;color:#687078;margin-bottom:20px">No Enterprise Fabrics to display.</div>
+                  <button onclick="showPage('create-fabric')" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:7px 22px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer">Create Enterprise Fabric &#9660;</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+
+      <!-- ══ CREATE ENTERPRISE FABRIC PAGE ══ -->
+      <div id="page-create-fabric" style="display:none">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <div class="page-title" style="margin-bottom:4px">Create Enterprise Fabric</div>
+            <div style="font-size:14px;color:#687078">Configure your enterprise data fabric — engine deployment, network connectivity, and authentication.</div>
+          </div>
+          <button id="setup-ds-btn" style="background:#ff9900;color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0;margin-top:4px" onclick="showPage('datasources')">
+            Set up data sources
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="10" height="10" rx="1.5" stroke="#fff" stroke-width="1.5" fill="none"/><path d="M8 8L14 2M14 2H10M14 2V6" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-size:16px;font-weight:400;margin-left:2px;opacity:0.7" onclick="event.stopPropagation();showPage('datafabric')" title="Close">&#x2715;</span>
+          </button>
+        </div>
+
+        <!-- Engine deployment section -->
+        <div style="background:#fff5ee;border:1px solid #ffd0b0;border-radius:8px;padding:20px 24px;margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span style="background:#ff6b00;color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:3px;letter-spacing:0.3px">Teradata Fabric</span>
+            <span style="font-size:15px;font-weight:700;color:#7a2e00">Engine deployment &mdash; QGaaS Engine Template</span>
+          </div>
+          <div style="background:#e8f4fd;border-left:3px solid #0073bb;border-radius:0 3px 3px 0;padding:10px 14px;font-size:13px;color:#003d7a;margin-bottom:18px;line-height:1.6">
+            Deploys the QGaaS Engine (CE + QGM) into your AWS account via CloudFormation. No Teradata-managed infrastructure. Uses your existing Direct Connect or VPN connectivity.
+          </div>
+
+          <!-- AWS region + Instance type -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:860px;margin-bottom:16px">
+            <div>
+              <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:5px">AWS region</label>
+              <select style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;background:#fff;height:36px;color:#0f1111">
+                <option>us-east-2 (US East &mdash; Ohio)</option>
+                <option>us-east-1 (US East &mdash; N. Virginia)</option>
+                <option>eu-west-1 (Europe &mdash; Ireland)</option>
+                <option>ap-southeast-1 (Asia Pacific &mdash; Singapore)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:5px">Instance type</label>
+              <select style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;background:#fff;height:36px;color:#0f1111">
+                <option>m5.2xlarge (recommended)</option>
+                <option>m5.4xlarge</option>
+                <option>m5.8xlarge</option>
+                <option>m5.16xlarge</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- VPC -->
+          <div style="max-width:860px;margin-bottom:16px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">VPC</label>
+            <div style="font-size:12px;color:#687078;margin-bottom:5px">Must have network connectivity to your target data engines.</div>
+            <select style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;background:#fff;height:36px;color:#0f1111">
+              <option>vpc-0a1b2c3d &mdash; prod-vpc (10.0.0.0/16)</option>
+              <option>vpc-0x9y8z7w &mdash; dev-vpc (172.16.0.0/12)</option>
+            </select>
+          </div>
+
+          <!-- Subnet -->
+          <div style="max-width:860px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:5px">Subnet</label>
+            <select style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;background:#fff;height:36px;color:#0f1111">
+              <option>subnet-0a1b2c &mdash; us-east-2a (private)</option>
+              <option>subnet-0x9y8z &mdash; us-east-2b (private)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Outbound Auth -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px 24px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:#0f1111;margin-bottom:4px">Outbound Auth configurations</div>
+          <div style="font-size:13px;color:#687078;margin-bottom:16px;line-height:1.6">An Outbound Auth is required to receive access tokens and vend them to the Token Vault to allow an agent to access downstream resources. <a style="color:#0073bb;cursor:pointer">Learn more &#8599;</a></div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;opacity:0.45">
+              <input type="radio" name="outauth" disabled style="accent-color:#0073bb;width:16px;height:16px;flex-shrink:0"/>
+              <span style="font-size:14px;font-weight:600;color:#0f1111">IAM Role</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="radio" name="outauth" checked style="accent-color:#0073bb;width:16px;height:16px;flex-shrink:0"/>
+              <span style="font-size:14px;font-weight:600;color:#0f1111">OAuth client</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <input type="radio" name="outauth" style="accent-color:#0073bb;width:16px;height:16px;flex-shrink:0"/>
+              <span style="font-size:14px;font-weight:600;color:#0f1111">API key</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;opacity:0.45">
+              <input type="radio" name="outauth" disabled style="accent-color:#0073bb;width:16px;height:16px;flex-shrink:0"/>
+              <span style="font-size:14px;color:#0f1111">No authorization</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Footer buttons -->
+        <div style="display:flex;gap:10px;align-items:center">
+          <button style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:7px 20px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Create Enterprise Fabric</button>
+          <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer" onclick="showPage('datafabric')">Cancel</button>
+        </div>
+      </div>
+
+
+      <!-- ══ SET UP DATA SOURCES PAGE ══ -->
+      <div id="page-datasources" style="display:none">
+
+        <div style="display:flex;gap:0;min-height:600px">
+
+          <!-- Left step rail -->
+          <div style="width:220px;flex-shrink:0;padding:8px 0 0">
+            <div style="margin-bottom:20px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 1</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:20px;height:20px;border-radius:50%;background:#0073bb;border:2px solid #0073bb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>
+                </div>
+                <span style="font-size:14px;font-weight:700;color:#0073bb">Choose a data source</span>
+              </div>
+            </div>
+            <div style="margin-bottom:20px;margin-left:10px;border-left:1px solid #e7e7e7;padding-left:18px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 2</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #aab7b8;background:#fff;flex-shrink:0"></div>
+                <span style="font-size:14px;color:#687078">Enter data source details</span>
+              </div>
+            </div>
+            <div style="margin-left:10px;border-left:1px solid #e7e7e7;padding-left:18px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 3</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #aab7b8;background:#fff;flex-shrink:0"></div>
+                <span style="font-size:14px;color:#687078">Review and create</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main content -->
+          <div style="flex:1;padding:0 0 0 32px">
+            <div class="page-title" style="margin-bottom:16px">Choose a data source</div>
+
+            <!-- Sources panel -->
+            <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px 24px">
+              <div style="margin-bottom:14px">
+                <span style="font-size:15px;font-weight:700;color:#0f1111">Data sources</span>
+                <span style="font-size:14px;color:#687078;margin-left:6px">(12)</span>
+                <span style="display:inline-block;background:#0073bb;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;margin-left:8px;font-weight:700">Info</span>
+                <div style="font-size:13px;color:#687078;margin-top:4px">Connect enterprise data engines to your fabric. Teradata Fabric handles federated query execution and pushdown — no data movement required.</div>
+              </div>
+
+              <!-- Search + filters -->
+              <div style="display:flex;gap:10px;margin-bottom:20px;align-items:center">
+                <div style="display:flex;align-items:center;gap:8px;border:1px solid #aab7b8;border-radius:3px;padding:6px 10px;flex:1;max-width:480px;background:#fff">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#687078" stroke-width="1.5"/><line x1="11" y1="11" x2="15" y2="15" stroke="#687078" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  <input style="border:none;outline:none;font-size:13px;color:#0f1111;background:transparent;width:100%" placeholder="Find data source"/>
+                </div>
+                <select style="border:1px solid #aab7b8;border-radius:3px;padding:6px 10px;font-size:13px;background:#fff;color:#0f1111;cursor:pointer">
+                  <option>Any data source</option>
+                  <option>Cloud warehouse</option>
+                  <option>On-premises database</option>
+                  <option>Big data / Hadoop</option>
+                </select>
+                <select style="border:1px solid #aab7b8;border-radius:3px;padding:6px 10px;font-size:13px;background:#fff;color:#0f1111;cursor:pointer">
+                  <option>Sort by recommended</option>
+                  <option>Sort by name</option>
+                </select>
+              </div>
+
+              <!-- Tile grid -->
+              <div id="ds-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+            </div>
+
+            <!-- Footer -->
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button onclick="showPage('ds-details')" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:7px 20px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Next</button>
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer" onclick="showPage('create-fabric')">Previous</button>
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer" onclick="showPage('datafabric')">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ══ STEP 2: ENTER DATA SOURCE DETAILS ══ -->
+      <div id="page-ds-details" style="display:none">
+        <div style="display:flex;gap:0;min-height:600px">
+          <!-- Step rail -->
+          <div style="width:220px;flex-shrink:0;padding:8px 0 0">
+            <div style="margin-bottom:20px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 1</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:20px;height:20px;border-radius:50%;background:#0073bb;border:2px solid #0073bb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 2.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <span style="font-size:14px;color:#687078">Choose a data source</span>
+              </div>
+            </div>
+            <div style="margin-bottom:20px;margin-left:10px;border-left:1px solid #0073bb;padding-left:18px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 2</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:20px;height:20px;border-radius:50%;background:#0073bb;border:2px solid #0073bb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>
+                </div>
+                <span style="font-size:14px;font-weight:700;color:#0073bb">Enter data source details</span>
+              </div>
+            </div>
+            <div style="margin-left:10px;border-left:1px solid #e7e7e7;padding-left:18px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 3</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #aab7b8;background:#fff;flex-shrink:0"></div>
+                <span style="font-size:14px;color:#687078">Review and create</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <div style="flex:1;padding:0 0 0 32px">
+            <div class="page-title" style="margin-bottom:20px">Enter data source details</div>
+
+            <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:24px;max-width:760px">
+
+              <!-- Foreign server name -->
+              <div style="margin-bottom:20px">
+                <label style="font-size:14px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Foreign server name</label>
+                <div style="font-size:13px;color:#687078;margin-bottom:8px;line-height:1.5">A unique name for this foreign server in Teradata Fabric. Valid characters: a-z, A-Z, 0-9, underscore.</div>
+                <input id="fs-name" style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:8px 10px;font-size:13px;color:#0f1111" placeholder="e.g. fs_bigquery_prod"/>
+              </div>
+
+              <!-- Section divider -->
+              <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;letter-spacing:0.5px;padding:12px 0 8px;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;margin-bottom:20px">Connector properties &mdash; BigQuery</div>
+
+              <!-- GCP project ID -->
+              <div style="margin-bottom:20px">
+                <label style="font-size:14px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">GCP project ID</label>
+                <div style="font-size:13px;color:#687078;margin-bottom:8px">The Google Cloud project that contains your BigQuery datasets.</div>
+                <input id="gcp-project" style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:8px 10px;font-size:13px;color:#0f1111" placeholder="my-gcp-project-id"/>
+              </div>
+
+              <!-- Dataset -->
+              <div style="margin-bottom:20px">
+                <label style="font-size:14px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Dataset</label>
+                <div style="font-size:13px;color:#687078;margin-bottom:8px;line-height:1.5">The BigQuery dataset to expose through this connector. Leave blank to expose all datasets in the project.</div>
+                <input id="gcp-dataset" style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:8px 10px;font-size:13px;color:#687078" placeholder="my_dataset (optional)"/>
+              </div>
+
+              <!-- GCP region -->
+              <div style="margin-bottom:24px">
+                <label style="font-size:14px;font-weight:700;color:#0f1111;display:block;margin-bottom:8px">GCP region</label>
+                <select style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:8px 10px;font-size:13px;background:#fff;color:#0f1111">
+                  <option>US (multi-region)</option>
+                  <option>EU (multi-region)</option>
+                  <option>us-central1</option>
+                  <option>us-east1</option>
+                  <option>europe-west1</option>
+                  <option>asia-east1</option>
+                </select>
+              </div>
+
+              <!-- Authentication section -->
+              <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;letter-spacing:0.5px;padding:12px 0 8px;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;margin-bottom:20px">Authentication</div>
+
+              <!-- Auth method -->
+              <div style="margin-bottom:16px">
+                <label style="font-size:14px;font-weight:700;color:#0f1111;display:block;margin-bottom:12px">Authentication method</label>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+                    <input type="radio" name="bq-auth" checked style="accent-color:#0073bb;margin-top:2px;flex-shrink:0"/>
+                    <div>
+                      <div style="font-size:14px;font-weight:600;color:#0f1111">Service account key (JSON) <span style="background:#e8f4fd;color:#0073bb;font-size:11px;padding:1px 7px;border-radius:3px;font-weight:700;margin-left:6px">Recommended</span></div>
+                      <div style="font-size:13px;color:#687078;margin-top:3px;line-height:1.5">Store the service account JSON key in AWS Secrets Manager and reference by ARN.</div>
+                      <div style="margin-top:10px">
+                        <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:5px">Secrets Manager ARN</label>
+                        <input style="width:100%;max-width:560px;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;color:#0f1111" placeholder="arn:aws:secretsmanager:us-east-2:123456789012:secret:bq-sa-key"/>
+                      </div>
+                    </div>
+                  </label>
+                  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+                    <input type="radio" name="bq-auth" style="accent-color:#0073bb;margin-top:2px;flex-shrink:0"/>
+                    <div>
+                      <div style="font-size:14px;font-weight:600;color:#0f1111">Workload Identity Federation</div>
+                      <div style="font-size:13px;color:#687078;margin-top:3px;line-height:1.5">Use AWS IAM role mapped to a GCP service account via Workload Identity Federation.</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Schema access -->
+              <div style="padding-top:20px;border-top:1px solid #e7e7e7">
+                <label style="font-size:14px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Schema access</label>
+                <div style="font-size:13px;color:#687078;margin-bottom:10px">Grant the Bedrock agent permission to read the schema of this connector for NL-to-SQL generation.</div>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                  <div id="sch-toggle" onclick="this.classList.toggle('off')" style="width:38px;height:20px;border-radius:10px;background:#1e8900;position:relative;cursor:pointer;transition:background .15s;flex-shrink:0">
+                    <div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;left:20px;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,0.2)"></div>
+                  </div>
+                  <span style="font-size:13px;font-weight:600;color:#1e8900">Yes</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button onclick="showPage('ds-review')" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:7px 20px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Next</button>
+              <button onclick="showPage('datasources')" style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer">Previous</button>
+              <button onclick="showPage('datafabric')" style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ STEP 3: REVIEW AND CREATE ══ -->
+      <div id="page-ds-review" style="display:none">
+        <div style="display:flex;gap:0;min-height:600px">
+          <!-- Step rail -->
+          <div style="width:220px;flex-shrink:0;padding:8px 0 0">
+            <div style="margin-bottom:20px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 1</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:20px;height:20px;border-radius:50%;background:#0073bb;border:2px solid #0073bb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 2.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <span style="font-size:14px;color:#687078">Choose a data source</span>
+              </div>
+            </div>
+            <div style="margin-bottom:20px;margin-left:10px;border-left:1px solid #0073bb;padding-left:18px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 2</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:20px;height:20px;border-radius:50%;background:#0073bb;border:2px solid #0073bb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 2.5" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <span style="font-size:14px;color:#687078">Enter data source details</span>
+              </div>
+            </div>
+            <div style="margin-left:10px;border-left:1px solid #0073bb;padding-left:18px">
+              <div style="font-size:12px;color:#687078;margin-bottom:4px">Step 3</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:20px;height:20px;border-radius:50%;background:#0073bb;border:2px solid #0073bb;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#fff"></div>
+                </div>
+                <span style="font-size:14px;font-weight:700;color:#0073bb">Review and create</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review content -->
+          <div style="flex:1;padding:0 0 0 32px">
+            <div class="page-title" style="margin-bottom:20px">Review and create</div>
+
+            <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:24px;max-width:760px;margin-bottom:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+                <span style="font-size:15px;font-weight:700;color:#0f1111">Data source</span>
+                <button onclick="showPage('datasources')" style="background:none;border:none;color:#0073bb;font-size:13px;cursor:pointer;font-weight:500">Edit</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0;border:1px solid #e7e7e7;border-radius:4px;overflow:hidden;font-size:13px">
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e7e7e7;background:#f8f8f8">
+                  <span style="color:#687078;font-weight:500">Data source type</span>
+                  <span style="color:#0f1111;font-weight:600;display:flex;align-items:center;gap:8px"><span style="background:#4285F4;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px">BQ</span>BigQuery</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e7e7e7">
+                  <span style="color:#687078;font-weight:500">Foreign server name</span>
+                  <span style="color:#0f1111;font-family:monospace">fs_bigquery_prod</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e7e7e7;background:#f8f8f8">
+                  <span style="color:#687078;font-weight:500">GCP project ID</span>
+                  <span style="color:#0f1111;font-family:monospace">my-gcp-project-id</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e7e7e7">
+                  <span style="color:#687078;font-weight:500">Dataset</span>
+                  <span style="color:#687078;font-style:italic">All datasets (blank)</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e7e7e7;background:#f8f8f8">
+                  <span style="color:#687078;font-weight:500">GCP region</span>
+                  <span style="color:#0f1111">US (multi-region)</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e7e7e7">
+                  <span style="color:#687078;font-weight:500">Authentication</span>
+                  <span style="color:#0f1111">Service account key (JSON) via Secrets Manager</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;background:#f8f8f8">
+                  <span style="color:#687078;font-weight:500">Schema access</span>
+                  <span style="color:#1e8900;font-weight:600">&#10003; Enabled</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- What happens next callout -->
+            <div style="background:#fff5ee;border-left:3px solid #ff6b00;border-radius:0 6px 6px 0;padding:14px 18px;max-width:760px;margin-bottom:20px;font-size:13px;color:#7a2e00;line-height:1.6">
+              <strong>What happens after you create this data source:</strong><br>
+              Teradata Fabric will register <strong>fs_bigquery_prod</strong> as a foreign server, validate connectivity, and automatically ingest the schema into your Enterprise Fabric Knowledge Base. Your Bedrock agents will be able to query BigQuery data in real time within minutes.
+            </div>
+
+            <!-- Footer -->
+            <div style="display:flex;gap:10px">
+              <button onclick="showPage('ds-created')" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:7px 22px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Create data source</button>
+              <button onclick="showPage('ds-details')" style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer">Previous</button>
+              <button onclick="showPage('datafabric')" style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 16px;border-radius:3px;font-size:13px;cursor:pointer">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ CREATED SUCCESS ══ -->
+      <div id="page-ds-created" style="display:none">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center">
+          <div style="width:56px;height:56px;border-radius:50%;background:#e8f5e9;border:2px solid #1e8900;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+            <svg width="26" height="26" viewBox="0 0 26 26"><path d="M5 13l5 5L21 7" stroke="#1e8900" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="font-size:20px;font-weight:700;color:#0f1111;margin-bottom:8px">Data source created</div>
+          <div style="font-size:14px;color:#687078;margin-bottom:6px"><strong style="color:#0f1111">fs_bigquery_prod</strong> (BigQuery) has been registered in your Enterprise Fabric.</div>
+          <div style="font-size:13px;color:#687078;margin-bottom:32px">Schema ingestion and Knowledge Base synthesis are running in the background.</div>
+          <div style="display:flex;gap:12px">
+            <button onclick="showPage('datasources')" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:8px 22px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Add another data source</button>
+            <button onclick="showPage('kb-page')" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:8px 22px;border-radius:3px;font-size:13px;font-weight:500;cursor:pointer">Knowledge Base</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ══ GATEWAYS LIST PAGE ══ -->
+      <div id="page-gateways" style="display:none">
+        <div class="page-title" style="margin-bottom:4px">Gateways</div>
+        <div style="font-size:14px;color:#687078;margin-bottom:20px">Gateways associate targets to third party tools to connect to agents.</div>
+
+        <!-- How it works -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px 24px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:#0f1111;margin-bottom:16px;display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:#687078">&#9660;</span> How it works</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #e7e7e7;border-left:1px solid #e7e7e7">
+            <div style="padding:24px 20px;border-right:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7">
+              <div style="height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:14px">
+                <svg width="110" height="110" viewBox="0 0 110 110"><circle cx="55" cy="60" r="36" fill="#e8f4fd" opacity="0.6"/><circle cx="55" cy="52" r="14" fill="#e8f4fd" stroke="#0073bb" stroke-width="1.5"/><circle cx="50" cy="49" r="2.5" fill="#0073bb"/><circle cx="60" cy="49" r="2.5" fill="#0073bb"/><path d="M49 56 Q55 60 61 56" stroke="#0073bb" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="30" y="70" width="18" height="14" rx="3" fill="#ff9900" opacity="0.8"/><rect x="55" y="70" width="18" height="14" rx="3" fill="#0073bb" opacity="0.6"/><rect x="80" y="70" width="14" height="14" rx="3" fill="#1e8900" opacity="0.6"/><line x1="39" y1="70" x2="50" y2="66" stroke="#aab7b8" stroke-width="1" stroke-dasharray="3 2"/><line x1="64" y1="70" x2="57" y2="66" stroke="#aab7b8" stroke-width="1" stroke-dasharray="3 2"/><line x1="85" y1="70" x2="62" y2="66" stroke="#aab7b8" stroke-width="1" stroke-dasharray="3 2"/></svg>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#0f1111;margin-bottom:8px">Create a gateway</div>
+              <div style="font-size:13px;color:#0f1111;line-height:1.65;margin-bottom:16px">To use external tools within your agents, create a <a style="color:#0073bb;cursor:pointer">gateway &#8599;</a> to manage a collection of targets that point to tools through OpenAPI schemas, REST API schemas, or as pre-configured integrations. You can configure <a style="color:#0073bb;cursor:pointer">inbound Auth &#8599;</a> and a <a style="color:#0073bb;cursor:pointer">policy engine &#8599;</a> for the gateway, and <a style="color:#0073bb;cursor:pointer">outbound Auth &#8599;</a> for each target to securely manage access to downstream resources.</div>
+              <button onclick="showPage('create-gateway')" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer">Create gateway</button>
+            </div>
+            <div style="padding:24px 20px;border-bottom:1px solid #e7e7e7">
+              <div style="height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:14px">
+                <svg width="110" height="110" viewBox="0 0 110 110"><circle cx="55" cy="55" r="36" fill="#e8f4fd" opacity="0.5"/><circle cx="55" cy="48" r="14" fill="#e8f4fd" stroke="#0073bb" stroke-width="1.5"/><circle cx="50" cy="45" r="2.5" fill="#0073bb"/><circle cx="60" cy="45" r="2.5" fill="#0073bb"/><path d="M49 52 Q55 56 61 52" stroke="#0073bb" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="78" cy="32" r="10" fill="#fff3e0" stroke="#ff9900" stroke-width="1.5"/><text x="78" y="37" text-anchor="middle" font-size="13" fill="#ff9900" font-weight="700">+</text><line x1="68" y1="36" x2="62" y2="42" stroke="#ff9900" stroke-width="1" stroke-dasharray="2 2"/></svg>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#0f1111;margin-bottom:8px">Add Target</div>
+              <div style="font-size:13px;color:#0f1111;line-height:1.65">Copy the gateway resource ARN into your runtime agent code to invoke it as part of your session.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gateways section title -->
+        <div style="font-size:20px;font-weight:700;color:#0f1111;margin-bottom:12px">Gateways</div>
+
+        <!-- Table card -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;overflow:hidden">
+          <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e7e7">
+            <div>
+              <span style="font-size:15px;font-weight:700;color:#0f1111">Gateways</span>
+              <span id="gw-count" style="font-size:14px;color:#687078;margin-left:6px">(0)</span>
+              <span style="display:inline-block;background:#0073bb;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;margin-left:8px;font-weight:700">Info</span>
+              <div style="font-size:12px;color:#687078;margin-top:2px">Gateways associate targets to third party tools to connect to agents.</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Edit</button>
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Delete</button>
+              <button onclick="showPage('create-gateway')" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:5px 18px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Create gateway</button>
+            </div>
+          </div>
+          <div style="padding:10px 20px;border-bottom:1px solid #e7e7e7;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:8px;border:1px solid #aab7b8;border-radius:3px;padding:5px 10px;width:300px;background:#fff">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#687078" stroke-width="1.5"/><line x1="11" y1="11" x2="15" y2="15" stroke="#687078" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input style="border:none;outline:none;font-size:13px;color:#687078;background:transparent;width:100%" placeholder="Find gateways"/>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#687078">
+              <button style="background:none;border:none;cursor:pointer;color:#687078;font-size:16px">&#8249;</button>
+              <span>1</span>
+              <button style="background:none;border:none;cursor:pointer;color:#687078;font-size:16px">&#8250;</button>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="border-bottom:1px solid #e7e7e7">
+                <th style="width:36px;padding:10px 12px"></th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Gateway name &#9661;</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Description &#9661;</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Status &#9661;</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Creation time &#9661;</th>
+              </tr>
+            </thead>
+            <tbody id="gw-tbody">
+              <tr><td colspan="5" style="padding:40px;text-align:center;color:#687078;font-size:13px">No gateways to display.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══ CREATE GATEWAY PAGE ══ -->
+      <div id="page-create-gateway" style="display:none">
+        <div class="page-title" style="margin-bottom:4px">Create gateway</div>
+        <div style="font-size:14px;color:#687078;margin-bottom:20px">Gateways associate targets to third party tools to connect to agents.</div>
+
+        <!-- Panel -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px 24px;margin-bottom:16px;max-width:860px">
+          <div style="font-size:16px;font-weight:700;color:#0f1111;margin-bottom:14px;display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:#687078">&#9660;</span> Target: target-quick-start <span style="display:inline-block;background:#0073bb;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;margin-left:4px;font-weight:700">Info</span></div>
+          <div style="font-size:13px;color:#687078;margin-bottom:18px">Targets are endpoints that define one or more tools as part of this gateway. You can define multiple targets for this gateway.</div>
+
+          <!-- Target name -->
+          <div style="margin-bottom:16px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Target name</label>
+            <input style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;color:#0f1111" value="target-quick-start-750e74"/>
+            <div style="font-size:12px;color:#687078;margin-top:3px">Valid characters are a-z, A-Z, 0-9, and - (hyphen). The name can have up to 50 characters.</div>
+          </div>
+
+          <!-- Target description -->
+          <div style="margin-bottom:18px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Target description</label>
+            <textarea style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;color:#687078;height:72px;resize:vertical;font-family:inherit" placeholder="Enter description"></textarea>
+          </div>
+
+          <!-- Target type -->
+          <div style="margin-bottom:18px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:10px">Target type</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+              <div class="gw-tile" id="gt-mcp" onclick="selectGwTile('mcp')" style="border:2px solid #0073bb;border-radius:6px;padding:12px 14px;cursor:pointer;background:#f2f8fd">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="radio" name="gtype" checked style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">MCP server</span></div>
+                <div style="font-size:12px;color:#687078;padding-left:22px">Define this target with pre-configured MCP server.</div>
+              </div>
+              <div class="gw-tile" id="gt-lambda" onclick="selectGwTile('lambda')" style="border:1px solid #aab7b8;border-radius:6px;padding:12px 14px;cursor:pointer;background:#fff">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="radio" name="gtype" style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">Lambda ARN</span></div>
+                <div style="font-size:12px;color:#687078;padding-left:22px">Define this target with a Lambda function and S3 resource.</div>
+              </div>
+              <div class="gw-tile" id="gt-rest" onclick="selectGwTile('rest')" style="border:1px solid #aab7b8;border-radius:6px;padding:12px 14px;cursor:pointer;background:#fff">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="radio" name="gtype" style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">REST API</span></div>
+                <div style="font-size:12px;color:#687078;padding-left:22px">Define this target with an OpenAPI or Smithy schema.</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div class="gw-tile" id="gt-apigw" onclick="selectGwTile('apigw')" style="border:1px solid #aab7b8;border-radius:6px;padding:12px 14px;cursor:pointer;background:#fff">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="radio" name="gtype" style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">API Gateway</span></div>
+                <div style="font-size:12px;color:#687078;padding-left:22px">Define this target with an API Gateway REST API deployed to a stage.</div>
+              </div>
+              <div class="gw-tile" id="gt-integ" onclick="selectGwTile('integ')" style="border:1px solid #aab7b8;border-radius:6px;padding:12px 14px;cursor:pointer;background:#fff">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="radio" name="gtype" style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">Integrations</span></div>
+                <div style="font-size:12px;color:#687078;padding-left:22px">Define this target with pre-configured templates from integration providers.</div>
+              </div>
+              <div class="gw-tile" id="gt-efc" onclick="selectGwTile('efc')" style="border:1px solid #aab7b8;border-radius:6px;padding:12px 14px;cursor:pointer;background:#fff;position:relative">
+                <span style="position:absolute;top:8px;right:8px;background:#ff6b00;color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:2px">Teradata</span>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><input type="radio" name="gtype" style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">Enterprise Fabric Connector</span></div>
+                <div style="font-size:12px;color:#687078;padding-left:22px">Connect to an Enterprise Fabric to give agents federated access to all registered data sources.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- MCP endpoint (shown for mcp) -->
+          <div id="gw-mcp-section">
+            <div style="margin-bottom:14px">
+              <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">MCP endpoint</label>
+              <div style="font-size:12px;color:#687078;margin-bottom:6px">The location of the MCP server associating one or more tools to this target.</div>
+              <input style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;color:#687078" placeholder="Enter endpoint"/>
+            </div>
+          </div>
+
+          <!-- Enterprise Fabric Connector section -->
+          <div id="gw-efc-section" style="display:none">
+            <div style="margin-bottom:16px">
+              <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Fabric</label>
+              <div style="font-size:12px;color:#687078;margin-bottom:8px">Select an Enterprise Fabric to connect agents to its registered data sources via Teradata Fabric.</div>
+              <div style="position:relative;max-width:560px">
+                <div id="fabric-dd-btn" onclick="toggleFabricDD()" style="border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:#687078">
+                  <span id="fabric-dd-label">Select a fabric...</span>
+                  <span id="fabric-dd-arrow" style="font-size:10px;color:#687078">&#9660;</span>
+                </div>
+                <div id="fabric-dd-list" style="display:none;position:absolute;width:100%;top:36px;left:0;z-index:100;border:1px solid #aab7b8;border-top:2px solid #0073bb;border-radius:0 0 4px 4px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.1)">
+                  <div id="fabric-dd-empty" style="padding:12px 14px;font-size:13px;color:#687078;font-style:italic">No Enterprise Fabrics created yet.</div>
+                  <div id="fabric-dd-item" style="display:none;padding:10px 14px;font-size:13px;color:#0f1111;cursor:pointer;align-items:center;gap:10px" onclick="selectFabricItem()">
+                    <span style="background:#ff6b00;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:2px">TD</span>
+                    enterprise-fabric-prod
+                    <span style="margin-left:auto;background:#e8f5e9;color:#1e8900;font-size:11px;padding:1px 7px;border-radius:3px;font-weight:600">Active</span>
+                  </div>
+                </div>
+              </div>
+              <div id="fabric-selected-info" style="display:none;margin-top:12px;background:#fff5ee;border:1px solid #ffd0b0;border-radius:4px;padding:12px 14px;font-size:13px;color:#7a2e00">
+                <strong>enterprise-fabric-prod</strong> — 1 connected data source (BigQuery). Teradata Fabric engine deployed in us-east-2.
+              </div>
+            </div>
+          </div>
+
+          <!-- Outbound auth -->
+          <div style="border-top:1px solid #e7e7e7;padding-top:16px;margin-top:8px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Outbound Auth configurations</label>
+            <div style="font-size:13px;color:#687078;margin-bottom:12px;line-height:1.5">An Outbound Auth is required to receive access tokens and vend them to the Token Vault to allow an agent to access downstream resources. <a style="color:#0073bb;cursor:pointer">Learn more &#8599;</a></div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <label style="display:flex;align-items:center;gap:8px;opacity:0.45"><input type="radio" name="oauth" disabled style="accent-color:#0073bb"/><span style="font-size:13px;color:#0f1111">IAM Role</span></label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="radio" name="oauth" checked style="accent-color:#0073bb"/><span style="font-size:13px;font-weight:600;color:#0f1111">OAuth client</span></label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="radio" name="oauth" style="accent-color:#0073bb"/><span style="font-size:13px;color:#0f1111">API key</span></label>
+              <label style="display:flex;align-items:center;gap:8px;opacity:0.45"><input type="radio" name="oauth" disabled style="accent-color:#0073bb"/><span style="font-size:13px;color:#0f1111">No authorization</span></label>
+            </div>
+          </div>
+
+          <!-- OAuth client -->
+          <div style="margin-top:14px">
+            <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">OAuth client</label>
+            <div style="font-size:13px;color:#687078;margin-bottom:8px;line-height:1.5">An OAuth client is an application registered with an identity provider (like Google, Okta) that uses the OAuth 2.0 protocol to request access to a user's data on their behalf. Go to OAuth client page to <a style="color:#0073bb;cursor:pointer">create new &#8599;</a>. Gateways use client credential grant (2LO) with MCP server targets.</div>
+            <select style="width:100%;max-width:560px;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;background:#fff;color:#687078">
+              <option>Choose an OAuth client</option>
+            </select>
+          </div>
+
+          <!-- Additional configs -->
+          <div style="margin-top:16px;font-size:13px;color:#0f1111;cursor:pointer;display:flex;align-items:center;gap:6px">
+            <span style="font-size:10px;color:#687078">&#9658;</span>
+            <strong>Additional configurations</strong> &mdash; <em>optional</em>
+          </div>
+        </div>
+
+        <!-- Add another target + footer -->
+        <div style="max-width:860px">
+          <button style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:24px">Add another target</button>
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:16px">
+            <button onclick="showPage('gateways')" style="background:none;border:none;color:#0073bb;font-size:13px;cursor:pointer;font-weight:500">Cancel</button>
+            <button onclick="createGateway()" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:7px 22px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Create gateway</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ══ KNOWLEDGE BASE PAGE ══ -->
+      <div id="page-kb-page" style="display:none">
+
+        <!-- Orange pill top-right -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <div class="page-title" style="margin-bottom:4px">Knowledge Bases</div>
+            <div style="font-size:14px;color:#687078">Connect your Enterprise Fabric data to Bedrock for agent-powered retrieval.</div>
+          </div>
+          <button onclick="showPage('datafabric')" style="background:#ff9900;color:#fff;border:none;border-radius:24px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0;margin-top:4px">
+            Back to Enterprise Fabric
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;border-bottom:2px solid #e7e7e7;margin-bottom:20px">
+          <div style="padding:8px 20px;font-size:14px;font-weight:600;color:#0073bb;border-bottom:2px solid #0073bb;margin-bottom:-2px;cursor:pointer">Knowledge Bases</div>
+          <div style="padding:8px 20px;font-size:14px;color:#687078;cursor:pointer">Chat with your document</div>
+        </div>
+
+        <!-- How it works -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:20px 24px;margin-bottom:20px">
+          <div style="font-size:15px;font-weight:700;color:#0f1111;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:#687078">&#9660;</span> How it works
+            <span style="display:inline-block;background:#0073bb;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;font-weight:700">Info</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:0">
+
+            <!-- Col 1 -->
+            <div style="padding:8px 24px 8px 0">
+              <div style="height:80px;display:flex;align-items:center;margin-bottom:14px">
+                <svg width="52" height="52" viewBox="0 0 52 52"><rect x="8" y="6" width="28" height="36" rx="3" fill="#e8eaf6" stroke="#7986cb" stroke-width="1.5"/><circle cx="22" cy="24" r="8" fill="none" stroke="#7986cb" stroke-width="1.5"/><line x1="28" y1="30" x2="36" y2="38" stroke="#7986cb" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="10" r="5" fill="#fff" stroke="#7986cb" stroke-width="1.2"/><line x1="12" y1="10" x2="18" y2="10" stroke="#7986cb" stroke-width="1.2" stroke-linecap="round"/><line x1="15" y1="7" x2="15" y2="13" stroke="#7986cb" stroke-width="1.2" stroke-linecap="round"/></svg>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#0f1111;margin-bottom:10px">1. Create a Knowledge Base with</div>
+              <ul style="font-size:13px;color:#0f1111;line-height:1.7;padding-left:18px">
+                <li><strong>Vector store:</strong> Build a fully customizable Knowledge Base with maximum flexibility. Specify the location of your data, select an embedding model, and configure a vector store.</li>
+                <li style="margin-top:6px"><strong>Structured data store:</strong> Use for structured data (e.g., databases, tables) to enable semantic search within existing systems via the Knowledge Base.</li>
+                <li style="margin-top:6px"><strong>Kendra GenAI Index</strong> Use for document understanding powered by Kendra GenAI Index.</li>
+              </ul>
+              <button onclick="createKB()" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;margin-top:16px">Create &#9660;</button>
+            </div>
+
+            <div style="background:#e7e7e7;width:1px"></div>
+
+            <!-- Col 2 -->
+            <div style="padding:8px 24px">
+              <div style="height:80px;display:flex;align-items:center;margin-bottom:14px">
+                <svg width="52" height="52" viewBox="0 0 52 52"><rect x="6" y="8" width="30" height="36" rx="3" fill="#e8eaf6" stroke="#7986cb" stroke-width="1.5"/><circle cx="22" cy="26" r="9" fill="none" stroke="#7986cb" stroke-width="1.5"/><circle cx="22" cy="26" r="4" fill="#7986cb" opacity="0.4"/><line x1="29" y1="33" x2="38" y2="42" stroke="#7986cb" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#0f1111;margin-bottom:10px">2. Test</div>
+              <ul style="font-size:13px;color:#0f1111;line-height:1.7;padding-left:18px">
+                <li>Standard retrieval retrieves relevant text, image, audio, or video chunks.</li>
+                <li style="margin-top:6px">Retrieval with generation to generate a response using a foundation model from your retrieved text content.</li>
+              </ul>
+            </div>
+
+            <div style="background:#e7e7e7;width:1px"></div>
+
+            <!-- Col 3 -->
+            <div style="padding:8px 0 8px 24px">
+              <div style="height:80px;display:flex;align-items:center;margin-bottom:14px">
+                <svg width="52" height="52" viewBox="0 0 52 52"><rect x="4" y="8" width="22" height="30" rx="3" fill="#e8eaf6" stroke="#7986cb" stroke-width="1.5"/><rect x="28" y="16" width="20" height="22" rx="3" fill="#e8eaf6" stroke="#7986cb" stroke-width="1.5"/><line x1="26" y1="26" x2="28" y2="26" stroke="#7986cb" stroke-width="1.5" stroke-dasharray="2 2"/></svg>
+              </div>
+              <div style="font-size:14px;font-weight:700;color:#0f1111;margin-bottom:10px">3. Integrate</div>
+              <div style="font-size:13px;color:#0f1111;line-height:1.7">Integrate your Knowledge Base into your application as is, or add it to agents.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Knowledge Bases table -->
+        <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;overflow:hidden">
+          <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e7e7">
+            <div>
+              <span style="font-size:15px;font-weight:700;color:#0f1111">Knowledge Bases</span>
+              <span id="kb-count" style="font-size:14px;color:#687078;margin-left:6px">(0)</span>
+              <span style="display:inline-block;background:#0073bb;color:#fff;font-size:10px;padding:1px 7px;border-radius:3px;margin-left:8px;font-weight:700">Info</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Sync</button>
+              <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Delete</button>
+              <button onclick="createKB()" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:5px 18px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">Create &#9660;</button>
+            </div>
+          </div>
+          <div style="padding:10px 20px;border-bottom:1px solid #e7e7e7">
+            <div style="display:flex;align-items:center;gap:8px;border:1px solid #aab7b8;border-radius:3px;padding:5px 10px;width:300px;background:#fff">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#687078" stroke-width="1.5"/><line x1="11" y1="11" x2="15" y2="15" stroke="#687078" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <input style="border:none;outline:none;font-size:13px;color:#687078;background:transparent;width:100%" placeholder="Find knowledge bases"/>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="border-bottom:1px solid #e7e7e7">
+                <th style="width:36px;padding:10px 12px"></th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Name &#9661;</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Status &#9661;</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Data source</th>
+                <th style="text-align:left;padding:10px 16px;font-weight:700;color:#0f1111">Created at (UTC-05:00) &#9661;</th>
+              </tr>
+            </thead>
+            <tbody id="kb-tbody">
+              <tr><td colspan="5" style="padding:40px;text-align:center;color:#687078;font-size:13px">No knowledge bases to display.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+      <!-- ══ FABRIC DETAIL / MANAGEMENT PAGE ══ -->
+      <div id="page-fabric-detail" style="display:none">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <div class="page-title" style="margin-bottom:0">enterprise-fabric-prod</div>
+              <span style="display:inline-flex;align-items:center;gap:5px;color:#1e8900;font-weight:500;font-size:13px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:3px 10px"><svg width="13" height="13" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#e8f5e9" stroke="#1e8900" stroke-width="1.2"/><path d="M4 7l2 2 4-4" stroke="#1e8900" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Active</span>
+            </div>
+            <div style="font-size:13px;color:#687078">Enterprise Fabric &mdash; Teradata Fabric engine &mdash; us-east-2 &mdash; Created April 22, 2026</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-shrink:0;margin-top:4px">
+            <button onclick="showPage('datafabric')" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:7px 16px;border-radius:3px;font-size:13px;font-weight:500;cursor:pointer">&#8592; Enterprise Fabric</button>
+            <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:7px 14px;border-radius:3px;font-size:13px;cursor:pointer">Edit</button>
+            <button style="background:#fff;color:#d13212;border:1px solid #d13212;padding:7px 14px;border-radius:3px;font-size:13px;cursor:pointer">Delete</button>
+          </div>
+        </div>
+
+        <!-- Summary stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 24px">
+          <div style="background:#fff;border:1px solid #e7e7e7;border-top:3px solid #ff6b00;border-radius:6px;padding:14px 16px">
+            <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Engine</div>
+            <div style="font-size:14px;font-weight:700;color:#0f1111">CE + QGM + DN</div>
+            <div style="font-size:12px;color:#687078;margin-top:2px">m5.2xlarge &middot; us-east-2</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e7e7e7;border-top:3px solid #0073bb;border-radius:6px;padding:14px 16px">
+            <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Data sources</div>
+            <div style="font-size:24px;font-weight:700;color:#0073bb">1</div>
+            <div style="font-size:12px;color:#687078;margin-top:2px">BigQuery</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e7e7e7;border-top:3px solid #1e8900;border-radius:6px;padding:14px 16px">
+            <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Knowledge Base</div>
+            <div style="font-size:14px;font-weight:700;color:#0f1111">Enterprise Knowledge Base</div>
+            <div style="font-size:12px;color:#1e8900;margin-top:2px">&#10003; Synced</div>
+          </div>
+          <div style="background:#fff;border:1px solid #e7e7e7;border-top:3px solid #687078;border-radius:6px;padding:14px 16px">
+            <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px">Gateway</div>
+            <div style="font-size:14px;font-weight:700;color:#0f1111">gateway-enterprise-fabric</div>
+            <div style="font-size:12px;color:#1e8900;margin-top:2px">&#10003; Ready</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;border-bottom:2px solid #e7e7e7;margin-bottom:20px;gap:0">
+          <div id="tab-connectors" onclick="switchTab('connectors')" style="padding:8px 20px;font-size:14px;font-weight:600;color:#0073bb;border-bottom:2px solid #0073bb;margin-bottom:-2px;cursor:pointer">Connectors</div>
+          <div id="tab-kb" onclick="switchTab('kb')" style="padding:8px 20px;font-size:14px;color:#687078;cursor:pointer">Knowledge Base</div>
+          <div id="tab-engine" onclick="switchTab('engine')" style="padding:8px 20px;font-size:14px;color:#687078;cursor:pointer">Engine</div>
+          <div id="tab-settings" onclick="switchTab('settings')" style="padding:8px 20px;font-size:14px;color:#687078;cursor:pointer">Settings</div>
+        </div>
+
+        <!-- Tab: Connectors -->
+        <div id="tabpanel-connectors">
+          <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;overflow:hidden">
+            <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e7e7">
+              <div>
+                <span style="font-size:15px;font-weight:700;color:#0f1111">Connected data sources</span>
+                <span style="font-size:14px;color:#687078;margin-left:6px">(1)</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Remove</button>
+                <button onclick="showPage('datasources')" style="background:#ff9900;color:#fff;border:1px solid #e88b00;padding:5px 16px;border-radius:3px;font-size:13px;font-weight:700;cursor:pointer">+ Add connector</button>
+              </div>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead>
+                <tr style="border-bottom:1px solid #e7e7e7;background:#f8f8f8">
+                  <th style="width:36px;padding:10px 12px"></th>
+                  <th style="text-align:left;padding:10px 14px;font-weight:700;color:#0f1111">Foreign server name</th>
+                  <th style="text-align:left;padding:10px 14px;font-weight:700;color:#0f1111">Type</th>
+                  <th style="text-align:left;padding:10px 14px;font-weight:700;color:#0f1111">Host / endpoint</th>
+                  <th style="text-align:left;padding:10px 14px;font-weight:700;color:#0f1111">Schema access</th>
+                  <th style="text-align:left;padding:10px 14px;font-weight:700;color:#0f1111">Status</th>
+                  <th style="padding:10px 14px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #e7e7e7">
+                  <td style="padding:10px 12px"><input type="radio" name="conn-sel" style="accent-color:#0073bb"/></td>
+                  <td style="padding:10px 14px;color:#0073bb;cursor:pointer;font-weight:500">fs_bigquery_prod</td>
+                  <td style="padding:10px 14px"><span style="display:inline-flex;align-items:center;gap:5px;background:#e8f4fd;border:1px solid #b3d4f5;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600;color:#0052cc"><span style="background:#4285F4;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:2px">BQ</span>BigQuery</span></td>
+                  <td style="padding:10px 14px;color:#687078;font-size:12px">my-gcp-project-id.dataset</td>
+                  <td style="padding:10px 14px"><span style="color:#1e8900;font-weight:500;font-size:13px">&#10003; Enabled</span></td>
+                  <td style="padding:10px 14px"><span style="display:inline-flex;align-items:center;gap:4px;color:#1e8900;font-weight:500;font-size:13px"><svg width="13" height="13" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#e8f5e9" stroke="#1e8900" stroke-width="1.2"/><path d="M4 7l2 2 4-4" stroke="#1e8900" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Registered</span></td>
+                  <td style="padding:10px 14px"><button style="background:none;border:none;color:#0073bb;font-size:12px;cursor:pointer">Edit</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Knowledge Base -->
+        <div id="tabpanel-kb" style="display:none">
+          <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;overflow:hidden">
+            <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7e7e7">
+              <div>
+                <span style="font-size:15px;font-weight:700;color:#0f1111">Knowledge Base</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button style="background:#fff;color:#0f1111;border:1px solid #aab7b8;padding:5px 14px;border-radius:3px;font-size:13px;cursor:pointer">Sync now</button>
+                <button onclick="showPage('kb-page')" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:5px 14px;border-radius:3px;font-size:13px;font-weight:500;cursor:pointer">Open in Knowledge Bases &#8599;</button>
+              </div>
+            </div>
+            <div style="padding:20px 24px">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+                <div style="background:#f8f8f8;border:1px solid #e7e7e7;border-radius:6px;padding:14px">
+                  <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;margin-bottom:5px">Name</div>
+                  <div style="font-size:13px;font-weight:600;color:#0073bb;cursor:pointer">Enterprise Knowledge Base</div>
+                </div>
+                <div style="background:#f8f8f8;border:1px solid #e7e7e7;border-radius:6px;padding:14px">
+                  <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;margin-bottom:5px">Sync status</div>
+                  <div style="font-size:13px;font-weight:600;color:#1e8900">&#10003; Synced</div>
+                </div>
+                <div style="background:#f8f8f8;border:1px solid #e7e7e7;border-radius:6px;padding:14px">
+                  <div style="font-size:11px;font-weight:700;color:#687078;text-transform:uppercase;margin-bottom:5px">Last synced</div>
+                  <div style="font-size:13px;color:#0f1111">April 22, 2026, 19:18</div>
+                </div>
+              </div>
+              <div style="background:#e8f4fd;border-left:3px solid #0073bb;border-radius:0 4px 4px 0;padding:10px 14px;font-size:13px;color:#003d7a;line-height:1.6">
+                Schema metadata from <strong>fs_bigquery_prod</strong> is ingested and synthesized into this Knowledge Base. Bedrock agents use it for NL-to-SQL generation at query time.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Engine -->
+        <div id="tabpanel-engine" style="display:none">
+          <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:24px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+              <span style="background:#ff6b00;color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:3px">Teradata Fabric</span>
+              <span style="font-size:15px;font-weight:700;color:#0f1111">Engine configuration</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e7e7e7;border-radius:4px;overflow:hidden;font-size:13px;max-width:600px">
+              <div style="padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #e7e7e7;font-weight:600;color:#687078">Deployment</div>
+              <div style="padding:10px 14px;border-bottom:1px solid #e7e7e7;color:#0f1111">CE + QGM + Driver Nodes</div>
+              <div style="padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #e7e7e7;font-weight:600;color:#687078">AWS region</div>
+              <div style="padding:10px 14px;border-bottom:1px solid #e7e7e7;color:#0f1111">us-east-2 (US East — Ohio)</div>
+              <div style="padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #e7e7e7;font-weight:600;color:#687078">Instance type</div>
+              <div style="padding:10px 14px;border-bottom:1px solid #e7e7e7;color:#0f1111">m5.2xlarge</div>
+              <div style="padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #e7e7e7;font-weight:600;color:#687078">VPC</div>
+              <div style="padding:10px 14px;border-bottom:1px solid #e7e7e7;color:#0f1111">vpc-0a1b2c3d — prod-vpc (10.0.0.0/16)</div>
+              <div style="padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #e7e7e7;font-weight:600;color:#687078">Subnet</div>
+              <div style="padding:10px 14px;border-bottom:1px solid #e7e7e7;color:#0f1111">subnet-0a1b2c — us-east-2a (private)</div>
+              <div style="padding:10px 14px;background:#f8f8f8;font-weight:600;color:#687078">CloudFormation stack</div>
+              <div style="padding:10px 14px;color:#0073bb;cursor:pointer">cfn-teradata-fabric-prod &#8599;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Settings -->
+        <div id="tabpanel-settings" style="display:none">
+          <div style="background:#fff;border:1px solid #e7e7e7;border-radius:8px;padding:24px;max-width:600px">
+            <div style="font-size:15px;font-weight:700;color:#0f1111;margin-bottom:20px">Fabric settings</div>
+            <div style="margin-bottom:16px">
+              <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Fabric name</label>
+              <input style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;color:#0f1111" value="enterprise-fabric-prod"/>
+            </div>
+            <div style="margin-bottom:20px">
+              <label style="font-size:13px;font-weight:700;color:#0f1111;display:block;margin-bottom:4px">Description</label>
+              <textarea style="width:100%;border:1px solid #aab7b8;border-radius:3px;padding:7px 10px;font-size:13px;color:#687078;height:72px;resize:vertical;font-family:inherit" placeholder="Enter description"></textarea>
+            </div>
+            <div style="padding-top:16px;border-top:1px solid #e7e7e7">
+              <div style="font-size:13px;font-weight:700;color:#d13212;margin-bottom:6px">Danger zone</div>
+              <button style="background:#fff;color:#d13212;border:1px solid #d13212;padding:6px 16px;border-radius:3px;font-size:13px;cursor:pointer">Delete this fabric</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /main-inner -->
+  </div><!-- /main -->
+
+</div><!-- /body-wrap -->
+
+<script>
+
+var dsSources = [
+  { name:'BigQuery',      color:'#4285F4', icon:'BQ',  type:'Cloud warehouse' },
+  { name:'Hive',          color:'#FFC107', icon:'HV',  type:'Big data / Hadoop', imgUrl:'hive' },
+  { name:'Spark',         color:'#E25A1C', icon:'SP',  type:'Big data / Hadoop' },
+  { name:'Oracle',        color:'#C74634', icon:'OR',  type:'On-premises database' },
+  { name:'Snowflake',     color:'#29B5E8', icon:'SF',  type:'Cloud warehouse' },
+  { name:'Cloudera',      color:'#F96702', icon:'CD',  type:'Big data / Hadoop' },
+  { name:'Teradata',      color:'#FF6B00', icon:'TD',  type:'On-premises database' },
+  { name:'Amazon Redshift',color:'#205081',icon:'RS',  type:'Cloud warehouse' },
+  { name:'PostgreSQL',    color:'#336791', icon:'PG',  type:'On-premises database' },
+  { name:'SQL Server',    color:'#CC2927', icon:'MS',  type:'On-premises database' },
+  { name:'Amazon S3',     color:'#569A31', icon:'S3',  type:'Object storage' },
+  { name:'MongoDB',       color:'#4DB33D', icon:'MG',  type:'NoSQL' },
+];
+
+var selectedDS = null;
+
+
+var gatewayCreated = false;
+var fabricSelected = false;
+function switchTab(tab) {
+  ['connectors','kb','engine','settings'].forEach(function(t) {
+    var panel = document.getElementById('tabpanel-'+t);
+    var tabEl = document.getElementById('tab-'+t);
+    if (!panel || !tabEl) return;
+    var active = t === tab;
+    panel.style.display = active ? 'block' : 'none';
+    tabEl.style.color = active ? '#0073bb' : '#687078';
+    tabEl.style.fontWeight = active ? '600' : '400';
+    tabEl.style.borderBottom = active ? '2px solid #0073bb' : 'none';
+    tabEl.style.marginBottom = active ? '-2px' : '0';
+  });
+}
+
+var fabricDDOpen = false;
+
+function selectGwTile(type) {
+  ['mcp','lambda','rest','apigw','integ','efc'].forEach(function(t) {
+    var el = document.getElementById('gt-'+t);
+    if (!el) return;
+    el.style.border = '1px solid #aab7b8';
+    el.style.background = '#fff';
+    var r = el.querySelector('input[type=radio]'); if(r) r.checked = false;
+  });
+  var sel = document.getElementById('gt-'+type);
+  if (sel) {
+    sel.style.border = '2px solid #0073bb';
+    sel.style.background = '#f2f8fd';
+    var r = sel.querySelector('input[type=radio]'); if(r) r.checked = true;
+  }
+  document.getElementById('gw-mcp-section').style.display = type === 'mcp' ? 'block' : 'none';
+  document.getElementById('gw-efc-section').style.display = type === 'efc' ? 'block' : 'none';
+  if (type === 'efc' && fabricCreated) {
+    document.getElementById('fabric-dd-empty').style.display = 'none';
+    document.getElementById('fabric-dd-item').style.display = 'flex';
+  }
+}
+
+function toggleFabricDD() {
+  fabricDDOpen = !fabricDDOpen;
+  var list = document.getElementById('fabric-dd-list');
+  var arrow = document.getElementById('fabric-dd-arrow');
+  var btn = document.getElementById('fabric-dd-btn');
+  list.style.display = fabricDDOpen ? 'block' : 'none';
+  arrow.innerHTML = fabricDDOpen ? '&#9650;' : '&#9660;';
+  btn.style.borderColor = fabricDDOpen ? '#0073bb' : '#aab7b8';
+  btn.style.borderWidth = fabricDDOpen ? '2px' : '1px';
+}
+
+function selectFabricItem() {
+  fabricSelected = true;
+  fabricDDOpen = false;
+  document.getElementById('fabric-dd-list').style.display = 'none';
+  document.getElementById('fabric-dd-arrow').innerHTML = '&#9660;';
+  document.getElementById('fabric-dd-btn').style.borderWidth = '1px';
+  document.getElementById('fabric-dd-label').textContent = 'enterprise-fabric-prod';
+  document.getElementById('fabric-dd-label').style.color = '#0f1111';
+  document.getElementById('fabric-selected-info').style.display = 'block';
+}
+
+function createGateway() {
+  gatewayCreated = true;
+  showPage('gateways');
+}
+
+function populateGatewayTable() {
+  var tbody = document.getElementById('gw-tbody');
+  var count = document.getElementById('gw-count');
+  if (!tbody) return;
+  if (gatewayCreated) {
+    tbody.innerHTML = '<tr style="background:#fffde7;border-bottom:1px solid #e7e7e7">'
+      + '<td style="padding:12px 12px"><input type="radio" name="gw-sel" checked style="accent-color:#0073bb"/></td>'
+      + '<td style="padding:12px 16px;color:#0073bb;cursor:pointer;font-weight:600">gateway-enterprise-fabric</td>'
+      + '<td style="padding:12px 16px;color:#687078">Enterprise Fabric gateway — BigQuery via Teradata Fabric</td>'
+      + '<td style="padding:12px 16px"><span style="display:inline-flex;align-items:center;gap:5px;color:#1e8900;font-weight:500">'
+      +   '<svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#e8f5e9" stroke="#1e8900" stroke-width="1.2"/><path d="M4 7l2 2 4-4" stroke="#1e8900" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +   'Ready</span></td>'
+      + '<td style="padding:12px 16px;color:#687078">April 22, 2026, 19:12 (UTC-05:00)</td>'
+      + '</tr>';
+    if (count) count.textContent = '(1)';
+  }
+}
+
+document.addEventListener('click', function(e) {
+  if (fabricDDOpen && !e.target.closest('#fabric-dd-btn') && !e.target.closest('#fabric-dd-list')) {
+    fabricDDOpen = false;
+    document.getElementById('fabric-dd-list').style.display = 'none';
+    document.getElementById('fabric-dd-arrow').innerHTML = '&#9660;';
+  }
+});
+
+
+var fabricCreated = false;
+var kbCreated = false;
+
+function createKB() {
+  kbCreated = true;
+  renderKBTable();
+  populateFabricTable();
+}
+
+function renderKBTable() {
+  var tbody = document.getElementById('kb-tbody');
+  var count = document.getElementById('kb-count');
+  if (!tbody) return;
+  if (kbCreated) {
+    tbody.innerHTML = '<tr style="background:#fffde7;border-bottom:1px solid #e7e7e7">'
+      + '<td style="padding:12px 12px"><input type="radio" name="kb-sel" checked style="accent-color:#0073bb"/></td>'
+      + '<td style="padding:12px 16px;color:#0073bb;cursor:pointer;font-weight:600">Enterprise Knowledge Base</td>'
+      + '<td style="padding:12px 16px"><span style="display:inline-flex;align-items:center;gap:5px;color:#1e8900;font-weight:500;font-size:13px"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#e8f5e9" stroke="#1e8900" stroke-width="1.2"/><path d="M4 7l2 2 4-4" stroke="#1e8900" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Synced</span></td>'
+      + '<td style="padding:12px 16px"><span style="background:#e8f4fd;border:1px solid #b3d4f5;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600;color:#0052cc;display:inline-flex;align-items:center;gap:5px"><span style="background:#4285F4;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:2px">BQ</span>BigQuery (enterprise-fabric-prod)</span></td>'
+      + '<td style="padding:12px 16px;color:#687078;font-size:13px">April 22, 2026, 19:18 (UTC-05:00)</td>'
+      + '</tr>';
+    if (count) count.textContent = '(1)';
+  } else {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:40px;text-align:center;color:#687078;font-size:13px">No knowledge bases to display.</td></tr>';
+    if (count) count.textContent = '(0)';
+  }
+}
+
+function populateFabricTable() {
+  var tbody = document.getElementById('fabric-tbody');
+  if (!tbody) { console.log('tbody not found'); return; }
+  if (fabricCreated) {
+    tbody.innerHTML = '<tr style="border-bottom:1px solid #e7e7e7">'
+      + '<td style="padding:12px 12px"><input type="radio" name="fabric-sel" checked style="accent-color:#0073bb"/></td>'
+      + '<td style="padding:12px 12px;color:#0073bb;cursor:pointer;font-weight:600" onclick="showPage(\'fabric-detail\')">enterprise-fabric-prod</td>'
+      + '<td style="padding:12px 12px"><span style="display:inline-flex;align-items:center;gap:5px;color:#1e8900;font-weight:500;font-size:13px"><svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#e8f5e9" stroke="#1e8900" stroke-width="1.2"/><path d="M4 7l2 2 4-4" stroke="#1e8900" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Active</span></td>'
+      + '<td style="padding:12px 12px"><span style="display:inline-flex;align-items:center;gap:5px;background:#e8f4fd;border:1px solid #b3d4f5;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600;color:#0052cc"><span style="background:#4285F4;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:2px">BQ</span>BigQuery</span></td>'
+      + '<td style="padding:12px 12px;font-size:13px">'+(kbCreated ? '<span style="color:#0073bb;font-weight:500">Enterprise Knowledge Base</span>' : '<span style="color:#aab7b8">&#8212;</span>')+'</td>'
+      + '<td style="padding:12px 12px;font-size:13px">'+(kbCreated ? '<span style="display:inline-flex;align-items:center;gap:4px;color:#1e8900;font-weight:500"><svg width="13" height="13" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#e8f5e9" stroke="#1e8900" stroke-width="1.2"/><path d="M4 7l2 2 4-4" stroke="#1e8900" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Active</span>' : '<span style="color:#aab7b8">&#8212;</span>')+'</td>'
+      + '<td style="padding:12px 12px;color:#687078;font-size:12px">April 22, 2026<br>19:04 (UTC-05:00)</td>'
+      + '<td style="padding:12px 12px;color:#687078;font-size:12px">April 22, 2026<br>19:04 (UTC-05:00)</td>'
+      + '</tr>';
+    // update count
+    var countEl = document.getElementById('fabric-count');
+    if (countEl) countEl.textContent = '(1)';
+  } else {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:48px 16px;text-align:center">'
+      + '<div style="font-size:14px;font-weight:600;color:#0f1111;margin-bottom:6px">No Enterprise Fabrics</div>'
+      + '<div style="font-size:13px;color:#687078;margin-bottom:20px">No Enterprise Fabrics to display.</div>'
+      + '<button onclick="showPage(\'create-fabric\')" style="background:#fff;color:#0073bb;border:1.5px solid #0073bb;padding:7px 22px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer">Create Enterprise Fabric &#9660;</button>'
+      + '</td></tr>';
+    var countEl = document.getElementById('fabric-count');
+    if (countEl) countEl.textContent = '(0)';
+  }
+}
+
+function renderDSTiles() {
+  var grid = document.getElementById('ds-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  grid.innerHTML = dsSources.map(function(s, i) {
+    return '<div onclick="selectDS(this,'+i+')" style="border:1.5px solid #e7e7e7;border-radius:8px;padding:14px;cursor:pointer;background:#fff;transition:border-color .15s;position:relative" class="ds-tile">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">'
+      + '<span style="font-size:13px;font-weight:600;color:#0f1111;line-height:1.3">'+s.name+'</span>'
+      + '<input type="radio" name="ds-sel" style="accent-color:#0073bb;width:15px;height:15px;flex-shrink:0;margin-left:4px"/>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;justify-content:center;height:72px">'
+      + '<div style="width:64px;height:64px;border-radius:10px;background:'+s.color+';display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.5px">'+s.icon+'</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function selectDS(el, idx) {
+  document.querySelectorAll('.ds-tile').forEach(function(t){
+    t.style.borderColor='#e7e7e7';
+    t.style.background='#fff';
+    var r = t.querySelector('input[type=radio]'); if(r) r.checked=false;
+  });
+  el.style.borderColor='#0073bb';
+  el.style.background='#f2f8fd';
+  var r = el.querySelector('input[type=radio]'); if(r) r.checked=true;
+  selectedDS = dsSources[idx];
+}
+
+function showPage(page) {
+  document.getElementById('page-overview').style.display = 'none';
+  document.getElementById('page-datafabric').style.display = 'none';
+  if(document.getElementById('page-create-fabric')) document.getElementById('page-create-fabric').style.display = 'none';
+  if(document.getElementById('page-datasources')) document.getElementById('page-datasources').style.display = 'none';
+  ['page-ds-details','page-ds-review','page-ds-created','page-gateways','page-create-gateway','page-kb-page','page-fabric-detail'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display='none';
+  });
+
+  // reset nav
+  document.querySelectorAll('.sb-item').forEach(function(el){ el.classList.remove('active'); });
+
+  if (page === 'overview') {
+    document.getElementById('page-overview').style.display = 'block';
+    document.getElementById('nav-overview').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'datafabric\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-current">Overview</span>';
+  } else if (page === 'fabric-detail') {
+    document.getElementById('page-fabric-detail').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'datafabric\')">Enterprise Fabric</span><span class="bc-sep">›</span><span class="bc-current">enterprise-fabric-prod</span>';
+    switchTab('connectors');
+  } else if (page === 'kb-page') {
+    kbCreated = true;
+    document.getElementById('page-kb-page').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'datafabric\')">Enterprise Fabric</span><span class="bc-sep">›</span><span class="bc-current">Knowledge Bases</span>';
+    renderKBTable();
+  } else if (page === 'gateways') {
+    document.getElementById('page-gateways').style.display = 'block';
+    document.getElementById('nav-gateways').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-current">Gateways</span>';
+    populateGatewayTable();
+  } else if (page === 'create-gateway') {
+    document.getElementById('page-create-gateway').style.display = 'block';
+    document.getElementById('nav-gateways').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'gateways\')">Gateways</span><span class="bc-sep">›</span><span class="bc-current">Create gateway</span>';
+    if (fabricCreated) {
+      document.getElementById('fabric-dd-empty').style.display = 'none';
+      document.getElementById('fabric-dd-item').style.display = 'flex';
+    }
+  } else if (page === 'datafabric') {
+    if (fabricCreated) kbCreated = true;
+    document.getElementById('page-datafabric').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-current">Enterprise Fabric</span>';
+    populateFabricTable();
+  } else if (page === 'create-fabric') {
+    document.getElementById('page-create-fabric').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-current">Create Enterprise Fabric</span>';
+  } else if (page === 'datasources') {
+    document.getElementById('page-datasources').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    document.getElementById('bc').innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'datafabric\')">Enterprise Fabric</span><span class="bc-sep">›</span><span class="bc-current">Set up data sources</span>';
+    renderDSTiles();
+  } else if (page === 'ds-details') {
+    document.getElementById('page-ds-details').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    var bc = document.getElementById('bc');
+    bc.innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'datafabric\')">Enterprise Fabric</span><span class="bc-sep">›</span><span class="bc-current">Data sources</span>';
+  } else if (page === 'ds-review') {
+    document.getElementById('page-ds-review').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    var bc = document.getElementById('bc');
+    bc.innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'datafabric\')">Enterprise Fabric</span><span class="bc-sep">›</span><span class="bc-current">Data sources</span>';
+  } else if (page === 'ds-created') {
+    fabricCreated = true;
+    document.getElementById('page-ds-created').style.display = 'block';
+    document.getElementById('nav-datafabric').classList.add('active');
+    var bc = document.getElementById('bc');
+    bc.innerHTML = '<span class="bc-link" onclick="showPage(\'overview\')">Amazon Bedrock AgentCore</span><span class="bc-sep">›</span><span class="bc-link" onclick="showPage(\'datafabric\')">Enterprise Fabric</span><span class="bc-sep">›</span><span class="bc-current">Data sources</span>';
+  }
+}
+
+// init
+showPage('overview');
+</script>
+</body>
+</html>
